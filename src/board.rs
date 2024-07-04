@@ -1,12 +1,12 @@
-use nalgebra::DMatrix;
 use crate::block::Block;
+use nalgebra::DMatrix;
 
 type CellType = u8;
 const FREE_CELL: CellType = 0;
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct Board {
-    data: DMatrix<CellType>
+    data: DMatrix<CellType>,
 }
 
 #[derive(Debug)]
@@ -16,7 +16,7 @@ pub(crate) struct PlacementRule {
     no_corner: Option<bool>,
 }
 
-pub(crate) struct BruteForceSearchPlace{
+pub(crate) struct BruteForceSearchPlace {
     block: Block,
     block_type: CellType,
     first_block: bool,
@@ -54,8 +54,14 @@ impl Iterator for BruteForceSearchPlace {
                 3 => &block.rotate_90().rotate_90().rotate_90(),
                 _ => block,
             };
-            let placement_rule = self.board.can_place(row, col, block, self.block_type, self.first_block);
-            match (placement_rule.no_corner, placement_rule.overlapping, placement_rule.own_block_touching_sides) {
+            let placement_rule =
+                self.board
+                    .can_place(row, col, block, self.block_type, self.first_block);
+            match (
+                placement_rule.no_corner,
+                placement_rule.overlapping,
+                placement_rule.own_block_touching_sides,
+            ) {
                 (Some(false), Some(false), Some(false)) => {
                     self.start = i + 1;
                     return Some(BlockPosition {
@@ -63,11 +69,10 @@ impl Iterator for BruteForceSearchPlace {
                         col,
                         rotation,
                         transposition,
-                    })
+                    });
                 }
                 _ => {}
             }
-
         }
         None
     }
@@ -76,7 +81,7 @@ impl Iterator for BruteForceSearchPlace {
 impl Board {
     pub fn new(nrows: usize, ncols: usize) -> Self {
         Board {
-            data: DMatrix::from_element(nrows, ncols, FREE_CELL)
+            data: DMatrix::from_element(nrows, ncols, FREE_CELL),
         }
     }
 
@@ -90,7 +95,10 @@ impl Board {
     pub fn printable_string(&self) -> String {
         let mut s = String::new();
         for row in self.data.row_iter() {
-            let row_str: Vec<char> = row.iter().map(|v| if *v != FREE_CELL {'#'} else {'_'}).collect();
+            let row_str: Vec<char> = row
+                .iter()
+                .map(|v| if *v != FREE_CELL { '#' } else { '_' })
+                .collect();
             s.push_str(String::from_iter(row_str.iter()).as_str());
             s.push_str("\n");
         }
@@ -111,7 +119,14 @@ impl Board {
         }
     }
 
-    pub fn can_place(&self, row: usize, col: usize, block: &Block, block_type: CellType, first_block: bool) -> PlacementRule {
+    pub fn can_place(
+        &self,
+        row: usize,
+        col: usize,
+        block: &Block,
+        block_type: CellType,
+        first_block: bool,
+    ) -> PlacementRule {
         let mut placement_rule = PlacementRule {
             overlapping: None,
             own_block_touching_sides: None,
@@ -167,7 +182,12 @@ impl Board {
 
         if first_block {
             // check block fills a corner and the corner is empty
-            for (corner_row, corner_col) in [(0, 0), (0, self.data.ncols() - 1), (self.data.nrows() - 1, 0), (self.data.nrows() - 1, self.data.ncols() - 1)] {
+            for (corner_row, corner_col) in [
+                (0, 0),
+                (0, self.data.ncols() - 1),
+                (self.data.nrows() - 1, 0),
+                (self.data.nrows() - 1, self.data.ncols() - 1),
+            ] {
                 if !self.free_at_row_col(corner_row, corner_col) {
                     continue; // corner already taken
                 }
@@ -176,7 +196,8 @@ impl Board {
                 if (relative_row >= 0)
                     && (relative_col >= 0)
                     && (relative_row < block.nrows() as i32)
-                    && (relative_col < block.ncols() as i32) {
+                    && (relative_col < block.ncols() as i32)
+                {
                     let block_row = relative_row as usize;
                     let block_col = relative_col as usize;
                     let block_cell = block.cell_at_row_col(block_row, block_col);
@@ -238,7 +259,12 @@ impl Board {
         }
     }
 
-    pub fn bruteforce_search_place(&self, block: &Block, block_type: CellType, first_block: bool) -> BruteForceSearchPlace {
+    pub fn bruteforce_search_place(
+        &self,
+        block: &Block,
+        block_type: CellType,
+        first_block: bool,
+    ) -> BruteForceSearchPlace {
         BruteForceSearchPlace {
             block: block.clone(),
             block_type,

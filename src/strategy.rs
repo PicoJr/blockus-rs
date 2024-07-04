@@ -32,19 +32,33 @@ pub(crate) struct Player {
 }
 
 pub(crate) trait Strategy {
-    fn place(board: &Board, player_id: u8, players: &[Player], first_block: bool) -> Option<BlockPlacement>;
+    fn place(
+        board: &Board,
+        player_id: u8,
+        players: &[Player],
+        first_block: bool,
+    ) -> Option<BlockPlacement>;
 }
 
 pub(crate) struct GreedyStrategy {}
 
 impl Strategy for GreedyStrategy {
-    fn place(board: &Board, player_id: u8, players: &[Player], first_block: bool) -> Option<BlockPlacement> {
-        let players_with_player_id: Vec<&Player> = players.iter().filter(|p| p.player_id == player_id).collect();
+    fn place(
+        board: &Board,
+        player_id: u8,
+        players: &[Player],
+        first_block: bool,
+    ) -> Option<BlockPlacement> {
+        let players_with_player_id: Vec<&Player> = players
+            .iter()
+            .filter(|p| p.player_id == player_id)
+            .collect();
         if let Some(player) = players_with_player_id.first() {
             let mut player_blocks = player.blocks.clone();
             player_blocks.sort_unstable_by(|b1, b2| b1.cells().cmp(&b2.cells()).reverse());
             for block in player_blocks {
-                let bruteforce_search = board.bruteforce_search_place(&block, player_id, first_block);
+                let bruteforce_search =
+                    board.bruteforce_search_place(&block, player_id, first_block);
                 for possible_block_position in bruteforce_search {
                     return Some(BlockPlacement {
                         block,
@@ -52,7 +66,7 @@ impl Strategy for GreedyStrategy {
                         col: possible_block_position.col,
                         rotation: possible_block_position.rotation,
                         transposition: possible_block_position.transposition,
-                    })
+                    });
                 }
                 // else block cannot be placed on the board
             }

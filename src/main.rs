@@ -1,27 +1,27 @@
-use std::io::{stdout, Result};
+use std::collections::HashSet;
+use std::io::{Result, stdout};
+use std::thread;
+use std::time::Duration;
 
+use palette::convert::FromColorUnclamped;
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{
         event::{self, KeyCode, KeyEventKind},
-        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
         ExecutableCommand,
+        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     },
-    style::Stylize,
-    widgets::Paragraph,
+    style::Stylize
+    ,
     Terminal,
 };
-
-use std::collections::HashSet;
-use std::thread;
-use std::time::Duration;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Color;
 use ratatui::widgets::Widget;
-use palette::{convert::FromColorUnclamped, Okhsv, Srgb};
 
 use strategy::Player;
+
 use crate::block::Block;
 use crate::board::Board;
 use crate::strategy::{GreedyStrategy, Strategy};
@@ -74,22 +74,22 @@ impl Widget for &mut BoardWidget {
 }
 
 fn main() -> Result<()> {
-
     stdout().execute(EnterAlternateScreen)?;
     enable_raw_mode()?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
     terminal.clear()?;
 
     let n_players = 4;
-    let mut players: Vec<Player> = (1u8..=n_players).map(|player_id| Player{
-        player_id,
-        blocks: Block::default_block_set(),
-    }).collect();
+    let mut players: Vec<Player> = (1u8..=n_players)
+        .map(|player_id| Player {
+            player_id,
+            blocks: Block::default_block_set(),
+        })
+        .collect();
     let mut board = Board::new(20, 20);
 
     let mut turn_counter: usize = 0;
     let mut players_eliminated = HashSet::<u8>::new();
-
 
     let mut color_widget = BoardWidget::default();
 
@@ -97,21 +97,21 @@ fn main() -> Result<()> {
         color_widget.board = board.clone();
         terminal.draw(|frame| {
             let area = frame.size();
-            frame.render_widget(
-                &mut color_widget,
-                area,
-            )
+            frame.render_widget(&mut color_widget, area)
         })?;
 
         for player_id in 1u8..=n_players {
             if players_eliminated.contains(&player_id) {
                 continue;
             }
-            if let Some(block_placement) = GreedyStrategy::place(&board, player_id, players.as_slice(), turn_counter == 0) {
+            if let Some(block_placement) =
+                GreedyStrategy::place(&board, player_id, players.as_slice(), turn_counter == 0)
+            {
                 // remove block from player blocks
                 for p in players.iter_mut() {
                     if p.player_id == player_id {
-                        let block_index_to_remove = p.blocks.iter().position(|b| *b == block_placement.block);
+                        let block_index_to_remove =
+                            p.blocks.iter().position(|b| *b == block_placement.block);
                         if let Some(index) = block_index_to_remove {
                             p.blocks.remove(index);
                         }
@@ -147,7 +147,11 @@ fn main() -> Result<()> {
     disable_raw_mode()?;
 
     for player in players {
-        println!("player: {}. score: {}", player.player_id , player.blocks.iter().map(|b| b.cells()).sum::<usize>());
+        println!(
+            "player: {}. score: {}",
+            player.player_id,
+            player.blocks.iter().map(|b| b.cells()).sum::<usize>()
+        );
     }
     Ok(())
 }
