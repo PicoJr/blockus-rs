@@ -4,7 +4,7 @@ use crate::block::Block;
 type CellType = u8;
 const FREE_CELL: CellType = 0;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub(crate) struct Board {
     data: DMatrix<CellType>
 }
@@ -96,11 +96,18 @@ impl Board {
         }
         s
     }
-    fn free_at_row_col(&self, row: usize, col: usize) -> bool {
+    pub fn free_at_row_col(&self, row: usize, col: usize) -> bool {
         if row < self.data.nrows() && col < self.data.ncols() {
             self.data[(row, col)] == FREE_CELL
         } else {
             false
+        }
+    }
+    pub fn at_row_col(&self, row: usize, col: usize) -> CellType {
+        if row < self.data.nrows() && col < self.data.ncols() {
+            self.data[(row, col)]
+        } else {
+            FREE_CELL
         }
     }
 
@@ -159,8 +166,11 @@ impl Board {
         placement_rule.own_block_touching_sides = Some(false);
 
         if first_block {
-            // check block fills a corner
+            // check block fills a corner and the corner is empty
             for (corner_row, corner_col) in [(0, 0), (0, self.data.ncols() - 1), (self.data.nrows() - 1, 0), (self.data.nrows() - 1, self.data.ncols() - 1)] {
+                if !self.free_at_row_col(corner_row, corner_col) {
+                    continue; // corner already taken
+                }
                 let relative_row = corner_row as i32 - row as i32;
                 let relative_col = corner_col as i32 - col as i32;
                 if (relative_row >= 0)
@@ -179,7 +189,7 @@ impl Board {
             if placement_rule.no_corner.is_some() {
                 return placement_rule;
             }
-            placement_rule.no_corner = Some(false);
+            placement_rule.no_corner = Some(true);
         } else {
             // check at least a corner with the same cell type as the block
             for block_row in 0..block.nrows() {
