@@ -56,8 +56,10 @@ impl Widget for &mut BoardWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         for (xi, x) in (area.left()..area.right()).enumerate() {
             for (yi, y) in (area.top()..area.bottom()).enumerate() {
-                if xi < self.board.ncols() && yi < self.board.nrows() {
-                    let cell_type = self.board.at_row_col(yi, xi);
+                let board_row = yi;
+                let board_col = xi / 2;
+                if board_col < self.board.ncols() && board_row < self.board.nrows() {
+                    let cell_type = self.board.at_row_col(board_row, board_col);
                     let color = match cell_type {
                         1 => Color::Rgb(255, 0, 0),
                         2 => Color::Rgb(0, 255, 0),
