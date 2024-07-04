@@ -16,8 +16,10 @@ use ratatui::{
     Terminal,
 };
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::layout::{Layout, Rect};
+use ratatui::layout::Constraint::{Length, Min};
 use ratatui::style::Color;
+use ratatui::text::Text;
 use ratatui::widgets::Widget;
 
 use strategy::Player;
@@ -30,27 +32,56 @@ mod block;
 mod board;
 mod strategy;
 
-/// A widget that displays the full range of RGB colors that can be displayed in the terminal.
-///
-/// This widget is animated and will change colors over time.
 #[derive(Debug, Default)]
 struct BoardWidget {
-    /// The colors to render - should be double the height of the area as we render two rows of
-    /// pixels for each row of the widget using the half block character. This is computed any time
-    /// the size of the widget changes.
-    colors: Vec<Vec<Color>>,
-
-    /// the number of elapsed frames that have passed - used to animate the colors by shifting the
-    /// x index by the frame number
-    frame_count: usize,
-
     board: Board,
 }
 
-/// Widget impl for `ColorsWidget`
-///
-/// This is implemented on a mutable reference so that we can update the frame count and store a
-/// cached version of the colors to render instead of recalculating them every frame.
+#[derive(Debug, Default)]
+struct PlayerWidget {
+    player: Player
+}
+
+impl Widget for &mut PlayerWidget {
+    fn render(self, area: Rect, buf: &mut Buffer) where Self: Sized {
+        let mut dx = 0;
+        let mut dy = 0;
+        for block in self.player.blocks.iter() {
+            let block_width_with_margin = (block.ncols() + 1) * 2;
+            let block_height_with_margin = block.nrows() + 1;
+            let enough_h_space = (area.left() + dx + (block_width_with_margin as u16)) < area.right();
+            if !enough_h_space {
+                // try next row
+                dx = 0;
+                dy += block_height_with_margin as u16;
+            }
+            let enough_h_space = (area.left() + dx + (block_width_with_margin as u16)) < area.right();
+            let enough_v_space = (area.top() + dy + (block_height_with_margin as u16)) < area.bottom();
+            if enough_h_space && enough_v_space {
+                for (xi, x) in ((area.left() + dx)..(area.left() + dx + (block_width_with_margin as u16))).enumerate() {
+                    for (yi, y) in ((area.top() + dy)..(area.top() + dy + (block_height_with_margin as u16))).enumerate() {
+                        let row = yi;
+                        let col = xi / 2;
+                        if (row < block.nrows()) && (col < block.ncols()) {
+                            if block.cell_at_row_col(row, col) {
+                                let color = match self.player.player_id {
+                                    1 => Color::Rgb(255, 0, 0),
+                                    2 => Color::Rgb(0, 255, 0),
+                                    3 => Color::Rgb(0, 0, 255),
+                                    4 => Color::Rgb(255, 255, 0),
+                                    _ => Color::Rgb(0, 0, 0),
+                                };
+                                buf.get_mut(x, y).set_char('█').set_fg(color);
+                            }
+                        }
+                    }
+                }
+            }
+            dx += block_width_with_margin as u16;
+        }
+    }
+}
+
 impl Widget for &mut BoardWidget {
     /// Render the widget
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -71,7 +102,23 @@ impl Widget for &mut BoardWidget {
                 }
             }
         }
-        self.frame_count += 1;
+    }
+}
+
+#[derive(Debug, Default)]
+struct App {
+    board_widget: BoardWidget,
+    player_widget: PlayerWidget,
+}
+
+impl Widget for &mut App {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let [top, bottom] = Layout::vertical([Length(20), Min(0)]).areas(area);
+        let [board, player] = Layout::horizontal([Length(40), Min(40)]).areas(top);
+        self.board_widget.render(board, buf);
+        self.player_widget.render(player, buf);
+        // Text::from("Player").left_aligned().render(player, buf);
+        Text::from("Console").left_aligned().render(bottom, buf);
     }
 }
 
@@ -93,19 +140,24 @@ fn main() -> Result<()> {
     let mut turn_counter: usize = 0;
     let mut players_eliminated = HashSet::<u8>::new();
 
-    let mut color_widget = BoardWidget::default();
+    let mut app = App::default();
 
     loop {
-        color_widget.board = board.clone();
-        terminal.draw(|frame| {
-            let area = frame.size();
-            frame.render_widget(&mut color_widget, area)
-        })?;
+        app.board_widget.board = board.clone();
 
         for player_id in 1u8..=n_players {
             if players_eliminated.contains(&player_id) {
                 continue;
             }
+
+            if let Some(player) = players.iter().find(|p| p.player_id == player_id) {
+                app.player_widget.player = player.clone();
+            }
+            terminal.draw(|frame| {
+                let area = frame.size();
+                frame.render_widget(&mut app, area);
+            })?;
+
             if let Some(block_placement) =
                 GreedyStrategy::place(&board, player_id, players.as_slice(), turn_counter == 0)
             {
@@ -122,15 +174,11 @@ fn main() -> Result<()> {
 
                 let (row, col, block) = block_placement.as_row_col_block();
                 board.place(row, col, &block, player_id);
+
             } else {
                 players_eliminated.insert(player_id);
             }
         }
-        /*
-        if players_eliminated.len() == (n_players as usize) {
-            break;
-        }
-        */
 
         turn_counter += 1;
 

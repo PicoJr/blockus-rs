@@ -26,6 +26,7 @@ impl BlockPlacement {
     }
 }
 
+#[derive(Clone, Debug, Default)]
 pub(crate) struct Player {
     pub player_id: u8,
     pub blocks: Vec<Block>,
