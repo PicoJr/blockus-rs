@@ -48,16 +48,6 @@ impl Block {
         })
     }
 
-    pub fn printable_string(&self) -> String {
-        let mut s = String::new();
-        for row in self.data.row_iter() {
-            let row_str: Vec<char> = row.iter().map(|v| if *v { '#' } else { '_' }).collect();
-            s.push_str(String::from_iter(row_str.iter()).as_str());
-            s.push_str("\n");
-        }
-        s
-    }
-
     pub fn nrows(&self) -> usize {
         self.data.nrows()
     }

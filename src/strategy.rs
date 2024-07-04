@@ -1,12 +1,13 @@
 use crate::block::Block;
 use crate::board::Board;
 
+#[derive(Clone, Debug)]
 pub(crate) struct BlockPlacement {
     pub(crate) block: Block,
-    row: usize,
-    col: usize,
-    rotation: u8,
-    transposition: u8,
+    pub(crate) row: usize,
+    pub(crate) col: usize,
+    pub(crate) rotation: u8,
+    pub(crate) transposition: u8,
 }
 
 impl BlockPlacement {
@@ -29,6 +30,7 @@ impl BlockPlacement {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct Player {
     pub player_id: u8,
+    pub human: bool,
     pub blocks: Vec<Block>,
 }
 

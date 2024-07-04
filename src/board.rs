@@ -16,6 +16,19 @@ pub(crate) struct PlacementRule {
     no_corner: Option<bool>,
 }
 
+impl PlacementRule {
+    pub fn placement_ok(&self) -> bool {
+        match (
+            &self.overlapping,
+            &self.own_block_touching_sides,
+            &self.no_corner,
+        ) {
+            (Some(false), Some(false), Some(false)) => true,
+            _ => false,
+        }
+    }
+}
+
 pub(crate) struct BruteForceSearchPlace {
     block: Block,
     block_type: CellType,
@@ -57,21 +70,15 @@ impl Iterator for BruteForceSearchPlace {
             let placement_rule =
                 self.board
                     .can_place(row, col, block, self.block_type, self.first_block);
-            match (
-                placement_rule.no_corner,
-                placement_rule.overlapping,
-                placement_rule.own_block_touching_sides,
-            ) {
-                (Some(false), Some(false), Some(false)) => {
-                    self.start = i + 1;
-                    return Some(BlockPosition {
-                        row,
-                        col,
-                        rotation,
-                        transposition,
-                    });
-                }
-                _ => {}
+
+            if placement_rule.placement_ok() {
+                self.start = i + 1;
+                return Some(BlockPosition {
+                    row,
+                    col,
+                    rotation,
+                    transposition,
+                });
             }
         }
         None
@@ -91,18 +98,6 @@ impl Board {
 
     pub fn ncols(&self) -> usize {
         self.data.ncols()
-    }
-    pub fn printable_string(&self) -> String {
-        let mut s = String::new();
-        for row in self.data.row_iter() {
-            let row_str: Vec<char> = row
-                .iter()
-                .map(|v| if *v != FREE_CELL { '#' } else { '_' })
-                .collect();
-            s.push_str(String::from_iter(row_str.iter()).as_str());
-            s.push_str("\n");
-        }
-        s
     }
     pub fn free_at_row_col(&self, row: usize, col: usize) -> bool {
         if row < self.data.nrows() && col < self.data.ncols() {
