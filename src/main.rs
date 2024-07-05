@@ -45,6 +45,16 @@ struct BlockPlacementWidget {
     player_id: u8,
 }
 
+fn color_from_player_id(player_id: u8) -> Color {
+    match player_id {
+        1 => Color::Rgb(255, 0, 0),
+        2 => Color::Rgb(0, 255, 0),
+        3 => Color::Rgb(0, 0, 255),
+        4 => Color::Rgb(255, 255, 0),
+        _ => Color::Rgb(0, 0, 0),
+    }
+}
+
 impl Widget for &mut BlockPlacementWidget {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
@@ -59,13 +69,7 @@ impl Widget for &mut BlockPlacementWidget {
                     let block_col = xi / 2;
                     let block_row = yi;
                     if block.cell_at_row_col(block_row, block_col) {
-                        let color = match self.player_id {
-                            1 => Color::Rgb(255, 0, 0),
-                            2 => Color::Rgb(0, 255, 0),
-                            3 => Color::Rgb(0, 0, 255),
-                            4 => Color::Rgb(255, 255, 0),
-                            _ => Color::Rgb(0, 0, 0),
-                        };
+                        let color = color_from_player_id(self.player_id);
                         buf.get_mut(x, y).set_char('█').set_fg(color);
                     }
                 }
@@ -108,13 +112,7 @@ impl Widget for &mut PlayerWidget {
                         let col = xi / 2;
                         if (row < block.nrows()) && (col < block.ncols()) {
                             if block.cell_at_row_col(row, col) {
-                                let color = match self.player.player_id {
-                                    1 => Color::Rgb(255, 0, 0),
-                                    2 => Color::Rgb(0, 255, 0),
-                                    3 => Color::Rgb(0, 0, 255),
-                                    4 => Color::Rgb(255, 255, 0),
-                                    _ => Color::Rgb(0, 0, 0),
-                                };
+                                let color = color_from_player_id(self.player.player_id);
                                 buf.get_mut(x, y).set_char('█').set_fg(color);
                             }
                         }
@@ -135,13 +133,7 @@ impl Widget for &mut BoardWidget {
                 let board_col = xi / 2;
                 if board_col < self.board.ncols() && board_row < self.board.nrows() {
                     let cell_type = self.board.at_row_col(board_row, board_col);
-                    let color = match cell_type {
-                        1 => Color::Rgb(255, 0, 0),
-                        2 => Color::Rgb(0, 255, 0),
-                        3 => Color::Rgb(0, 0, 255),
-                        4 => Color::Rgb(255, 255, 0),
-                        _ => Color::Rgb(0, 0, 0),
-                    };
+                    let color = color_from_player_id(cell_type);
                     buf.get_mut(x, y).set_char('█').set_fg(color);
                 }
             }
@@ -163,10 +155,12 @@ impl Widget for &mut App {
         self.board_widget.render(board, buf);
         self.block_placement_widget.render(board, buf);
         self.player_widget.render(player, buf);
-        if let Some(block) = &self.block_placement_widget.block_placement {
-            let text = format!("row: {} col: {}", block.row, block.col);
-            Text::from(text).left_aligned().render(bottom, buf);
-        }
+        let text = if let Some(block) = &self.block_placement_widget.block_placement {
+            format!("row: {}, col: {}, q(uit) j/k (previous/next) r(otate) t(ranspose)", block.row, block.col)
+        } else {
+            String::from("q(uit)")
+        };
+        Text::from(text).left_aligned().render(bottom, buf);
     }
 }
 
@@ -180,7 +174,7 @@ fn main() -> Result<()> {
     let mut players: Vec<Player> = (1u8..=n_players)
         .map(|player_id| Player {
             player_id,
-            human: player_id == 1,
+            human: player_id == 0,
             blocks: Block::default_block_set(),
         })
         .collect();
