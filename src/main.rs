@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::io::{stdout, Result};
-use std::thread;
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
@@ -112,11 +111,12 @@ impl Widget for &mut PlayerWidget {
                     {
                         let row = yi;
                         let col = xi / 2;
-                        if (row < block.nrows()) && (col < block.ncols()) {
-                            if block.cell_at_row_col(row, col) {
-                                let color = color_from_player_id(self.player.player_id);
-                                buf.get_mut(x, y).set_char('█').set_fg(color);
-                            }
+                        if (row < block.nrows())
+                            && (col < block.ncols())
+                            && block.cell_at_row_col(row, col)
+                        {
+                            let color = color_from_player_id(self.player.player_id);
+                            buf.get_mut(x, y).set_char('█').set_fg(color);
                         }
                     }
                 }
@@ -264,7 +264,7 @@ impl Widget for &mut App {
                     .player_selection_list
                     .items
                     .iter()
-                    .map(|item| ListItem::from(item))
+                    .map(ListItem::from)
                     .collect();
                 let list = List::new(items)
                     .block(block)
@@ -357,7 +357,7 @@ fn main() -> Result<()> {
         .items
         .iter()
         .enumerate()
-        .map(
+        .filter_map(
             |(player_id, player_selection)| match player_selection.status {
                 PlayerSelectionStatus::Computer => Some(Player {
                     player_id: (player_id + 1) as u8,
@@ -372,7 +372,6 @@ fn main() -> Result<()> {
                 PlayerSelectionStatus::NotSelected => None,
             },
         )
-        .flatten()
         .collect();
     let players_id: Vec<u8> = players.iter().map(|p| p.player_id).collect();
 
@@ -382,9 +381,9 @@ fn main() -> Result<()> {
     let mut players_eliminated = HashSet::<u8>::new();
 
     loop {
-        app.board_widget.board = board.clone();
-
         for &player_id in players_id.iter() {
+            app.board_widget.board = board.clone();
+
             if let Some(position) = players.iter().position(|p| p.player_id == player_id) {
                 let player: &Player = players.get(position).unwrap();
                 if players_eliminated.contains(&player_id) {
@@ -403,8 +402,6 @@ fn main() -> Result<()> {
                             transposition: 0,
                         });
                         loop {
-                            app.block_placement_widget.block_placement =
-                                player_block_placement.clone();
                             if event::poll(Duration::from_millis(16))? {
                                 if let event::Event::Key(key) = event::read()? {
                                     if key.kind == KeyEventKind::Press
@@ -498,6 +495,13 @@ fn main() -> Result<()> {
                                     }
                                 }
                             }
+
+                            if app.block_placement_widget.block_placement != player_block_placement
+                            {
+                                app.block_placement_widget
+                                    .block_placement
+                                    .clone_from(&player_block_placement);
+                            }
                             terminal.draw(|frame| {
                                 let area = frame.size();
                                 frame.render_widget(&mut app, area);
@@ -549,8 +553,6 @@ fn main() -> Result<()> {
                 }
             }
         }
-
-        thread::sleep(Duration::from_millis(30))
     }
 
     stdout().execute(LeaveAlternateScreen)?;
@@ -558,7 +560,7 @@ fn main() -> Result<()> {
 
     for player in players {
         println!(
-            "player: {}. score: {}",
+            "player: {}. left: {}",
             player.player_id,
             player.blocks.iter().map(|b| b.cells()).sum::<usize>()
         );

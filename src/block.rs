@@ -20,14 +20,7 @@ impl Block {
         let lines: Vec<String> = s.lines().map(String::from).collect();
         let rows: Vec<Vec<bool>> = lines
             .iter()
-            .map(|line| {
-                line.chars()
-                    .map(|c| match c {
-                        '#' => true,
-                        _ => false,
-                    })
-                    .collect()
-            })
+            .map(|line| line.chars().map(|c| matches!(c, '#')).collect())
             .collect();
 
         // check all rows have the same number of columns
@@ -240,19 +233,9 @@ mod test {
 
         let mut board = Board::new(10, 10);
         board.place(0, 0, &b, 1);
-        println!("{}", board.printable_string());
 
         let placement_rule = board.can_place(0, 3, &b.rotate_90().rotate_90(), 1, false);
         println!("{:?}", placement_rule);
         board.place(0, 3, &b.rotate_90().rotate_90(), 1);
-        println!("{}", board.printable_string());
-    }
-
-    #[test]
-    fn test_default_block_set() {
-        let blocks = Block::default_block_set();
-        for b in blocks {
-            println!("{}", b.printable_string());
-        }
     }
 }

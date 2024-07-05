@@ -1,7 +1,7 @@
 use crate::block::Block;
 use crate::board::Board;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct BlockPlacement {
     pub(crate) block: Block,
     pub(crate) row: usize,
@@ -60,16 +60,21 @@ impl Strategy for GreedyStrategy {
             let mut player_blocks = player.blocks.clone();
             player_blocks.sort_unstable_by(|b1, b2| b1.cells().cmp(&b2.cells()).reverse());
             for block in player_blocks {
-                let bruteforce_search =
+                let mut bruteforce_search =
                     board.bruteforce_search_place(&block, player_id, first_block);
-                for possible_block_position in bruteforce_search {
-                    return Some(BlockPlacement {
-                        block,
-                        row: possible_block_position.row,
-                        col: possible_block_position.col,
-                        rotation: possible_block_position.rotation,
-                        transposition: possible_block_position.transposition,
-                    });
+
+                let block_placement_maybe =
+                    bruteforce_search
+                        .next()
+                        .map(|possible_block_position| BlockPlacement {
+                            block,
+                            row: possible_block_position.row,
+                            col: possible_block_position.col,
+                            rotation: possible_block_position.rotation,
+                            transposition: possible_block_position.transposition,
+                        });
+                if block_placement_maybe.is_some() {
+                    return block_placement_maybe;
                 }
                 // else block cannot be placed on the board
             }

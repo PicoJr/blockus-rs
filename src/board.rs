@@ -18,14 +18,14 @@ pub(crate) struct PlacementRule {
 
 impl PlacementRule {
     pub fn placement_ok(&self) -> bool {
-        match (
-            &self.overlapping,
-            &self.own_block_touching_sides,
-            &self.no_corner,
-        ) {
-            (Some(false), Some(false), Some(false)) => true,
-            _ => false,
-        }
+        matches!(
+            (
+                &self.overlapping,
+                &self.own_block_touching_sides,
+                &self.no_corner,
+            ),
+            (Some(false), Some(false), Some(false))
+        )
     }
 }
 
