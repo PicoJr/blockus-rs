@@ -8,12 +8,18 @@ use ratatui::layout::Constraint::{Fill, Length, Min};
 use ratatui::layout::{Layout, Rect};
 use ratatui::style::Color;
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Borders, HighlightSpacing, List, ListItem, ListState, Paragraph, StatefulWidget, Widget};
-use ratatui::{backend::CrosstermBackend, crossterm::{
-    event::{self, KeyCode, KeyEventKind},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    ExecutableCommand,
-}, symbols, Terminal};
+use ratatui::widgets::{
+    Borders, HighlightSpacing, List, ListItem, ListState, Paragraph, StatefulWidget, Widget,
+};
+use ratatui::{
+    backend::CrosstermBackend,
+    crossterm::{
+        event::{self, KeyCode, KeyEventKind},
+        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+        ExecutableCommand,
+    },
+    symbols, Terminal,
+};
 
 use strategy::Player;
 
@@ -53,8 +59,8 @@ fn color_from_player_id(player_id: u8) -> Color {
 
 impl Widget for &mut BlockPlacementWidget {
     fn render(self, area: Rect, buf: &mut Buffer)
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         if let Some(block_placement) = &self.block_placement {
             let (board_row, board_col, block) = block_placement.as_row_col_block();
@@ -76,8 +82,8 @@ impl Widget for &mut BlockPlacementWidget {
 
 impl Widget for &mut PlayerWidget {
     fn render(self, area: Rect, buf: &mut Buffer)
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         let mut dx = 0;
         let mut dy = 0;
@@ -155,10 +161,10 @@ impl From<&PlayerSelectionItem> for ListItem<'_> {
     fn from(value: &PlayerSelectionItem) -> Self {
         let color = match value.player_id {
             1 => match value.status {
-                    PlayerSelectionStatus::Computer => ratatui::style::palette::tailwind::RED.c300,
-                    PlayerSelectionStatus::Human => ratatui::style::palette::tailwind::RED.c500,
-                    PlayerSelectionStatus::NotSelected => ratatui::style::palette::tailwind::RED.c700,
-                },
+                PlayerSelectionStatus::Computer => ratatui::style::palette::tailwind::RED.c300,
+                PlayerSelectionStatus::Human => ratatui::style::palette::tailwind::RED.c500,
+                PlayerSelectionStatus::NotSelected => ratatui::style::palette::tailwind::RED.c700,
+            },
             2 => match value.status {
                 PlayerSelectionStatus::Computer => ratatui::style::palette::tailwind::GREEN.c300,
                 PlayerSelectionStatus::Human => ratatui::style::palette::tailwind::GREEN.c500,
@@ -172,14 +178,22 @@ impl From<&PlayerSelectionItem> for ListItem<'_> {
             _ => match value.status {
                 PlayerSelectionStatus::Computer => ratatui::style::palette::tailwind::YELLOW.c300,
                 PlayerSelectionStatus::Human => ratatui::style::palette::tailwind::YELLOW.c500,
-                PlayerSelectionStatus::NotSelected => ratatui::style::palette::tailwind::YELLOW.c700,
+                PlayerSelectionStatus::NotSelected => {
+                    ratatui::style::palette::tailwind::YELLOW.c700
+                }
             },
         };
 
         let line = match value.status {
-            PlayerSelectionStatus::Computer => Line::styled(format!(" Computer     Player {}", value.player_id), color),
-            PlayerSelectionStatus::Human => Line::styled(format!(" Human        Player {}", value.player_id), color),
-            PlayerSelectionStatus::NotSelected => Line::styled(format!(" Not selected Player {}", value.player_id), color),
+            PlayerSelectionStatus::Computer => {
+                Line::styled(format!(" Computer     Player {}", value.player_id), color)
+            }
+            PlayerSelectionStatus::Human => {
+                Line::styled(format!(" Human        Player {}", value.player_id), color)
+            }
+            PlayerSelectionStatus::NotSelected => {
+                Line::styled(format!(" Not selected Player {}", value.player_id), color)
+            }
         };
         ListItem::new(line)
     }
@@ -194,10 +208,22 @@ struct PlayerSelectionList {
 impl Default for PlayerSelectionList {
     fn default() -> Self {
         let items = vec![
-            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, player_id: 1},
-            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, player_id: 2},
-            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, player_id: 3},
-            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, player_id: 4},
+            PlayerSelectionItem {
+                status: PlayerSelectionStatus::Computer,
+                player_id: 1,
+            },
+            PlayerSelectionItem {
+                status: PlayerSelectionStatus::Computer,
+                player_id: 2,
+            },
+            PlayerSelectionItem {
+                status: PlayerSelectionStatus::Computer,
+                player_id: 3,
+            },
+            PlayerSelectionItem {
+                status: PlayerSelectionStatus::Computer,
+                player_id: 4,
+            },
         ];
         PlayerSelectionList {
             items,
@@ -226,23 +252,26 @@ impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         match self.game_state {
             GameState::MainMenu => {
-                let [header, menu, footer] = Layout::vertical([
-                    Length(2),
-                    Fill(1),
-                    Length(1),
-                ]).areas(area);
+                let [header, menu, footer] =
+                    Layout::vertical([Length(2), Fill(1), Length(1)]).areas(area);
 
                 let block = ratatui::widgets::Block::new()
                     .title(Line::raw("Player Selection").centered())
                     .borders(Borders::all())
                     .border_set(symbols::border::ROUNDED);
 
-                let items: Vec<ListItem> = self.player_selection_list.items.iter().map(|item| ListItem::from(item)).collect();
-                let list = List::new(items).block(block).highlight_symbol(">").highlight_spacing(HighlightSpacing::Always);
+                let items: Vec<ListItem> = self
+                    .player_selection_list
+                    .items
+                    .iter()
+                    .map(|item| ListItem::from(item))
+                    .collect();
+                let list = List::new(items)
+                    .block(block)
+                    .highlight_symbol(">")
+                    .highlight_spacing(HighlightSpacing::Always);
 
-                Paragraph::new("Blockus-rs")
-                    .centered()
-                    .render(header, buf);
+                Paragraph::new("Blockus-rs").centered().render(header, buf);
                 StatefulWidget::render(list, menu, buf, &mut self.player_selection_list.state);
                 Paragraph::new("Use ↓↑ to move, ←→ to change Computer<->Human<->Not selected, enter to start game")
                     .centered()
@@ -255,7 +284,10 @@ impl Widget for &mut App {
                 self.block_placement_widget.render(board, buf);
                 self.player_widget.render(player, buf);
                 let text = if let Some(block) = &self.block_placement_widget.block_placement {
-                    format!("row: {}, col: {}, q(uit) j/k (previous/next) r(otate) t(ranspose)", block.row, block.col)
+                    format!(
+                        "row: {}, col: {}, q(uit) j/k (previous/next) r(otate) t(ranspose)",
+                        block.row, block.col
+                    )
                 } else {
                     String::from("q(uit)")
                 };
@@ -290,20 +322,26 @@ fn main() -> Result<()> {
                 }
                 if key.kind == KeyEventKind::Press && key.code == KeyCode::Left {
                     if let Some(i) = app.player_selection_list.state.selected() {
-                        app.player_selection_list.items[i].status = match app.player_selection_list.items[i].status {
-                            PlayerSelectionStatus::Computer => PlayerSelectionStatus::Human,
-                            PlayerSelectionStatus::Human => PlayerSelectionStatus::NotSelected,
-                            PlayerSelectionStatus::NotSelected => PlayerSelectionStatus::Computer,
-                        }
+                        app.player_selection_list.items[i].status =
+                            match app.player_selection_list.items[i].status {
+                                PlayerSelectionStatus::Computer => PlayerSelectionStatus::Human,
+                                PlayerSelectionStatus::Human => PlayerSelectionStatus::NotSelected,
+                                PlayerSelectionStatus::NotSelected => {
+                                    PlayerSelectionStatus::Computer
+                                }
+                            }
                     }
                 }
                 if key.kind == KeyEventKind::Press && key.code == KeyCode::Right {
                     if let Some(i) = app.player_selection_list.state.selected() {
-                        app.player_selection_list.items[i].status = match app.player_selection_list.items[i].status {
-                            PlayerSelectionStatus::Computer => PlayerSelectionStatus::NotSelected,
-                            PlayerSelectionStatus::Human => PlayerSelectionStatus::Computer,
-                            PlayerSelectionStatus::NotSelected => PlayerSelectionStatus::Human,
-                        }
+                        app.player_selection_list.items[i].status =
+                            match app.player_selection_list.items[i].status {
+                                PlayerSelectionStatus::Computer => {
+                                    PlayerSelectionStatus::NotSelected
+                                }
+                                PlayerSelectionStatus::Human => PlayerSelectionStatus::Computer,
+                                PlayerSelectionStatus::NotSelected => PlayerSelectionStatus::Human,
+                            }
                     }
                 }
                 if key.kind == KeyEventKind::Press && key.code == KeyCode::Enter {
@@ -314,14 +352,28 @@ fn main() -> Result<()> {
     }
     app.game_state = GameState::Game;
 
-    let mut players: Vec<Player> = app.player_selection_list.items.iter().enumerate().map(
-        |(player_id, player_selection)|
-            match player_selection.status {
-                PlayerSelectionStatus::Computer => Some(Player { player_id: (player_id + 1) as u8, human: false, blocks: Block::default_block_set() }),
-                PlayerSelectionStatus::Human => Some(Player { player_id: (player_id + 1) as u8, human: true, blocks: Block::default_block_set() }),
+    let mut players: Vec<Player> = app
+        .player_selection_list
+        .items
+        .iter()
+        .enumerate()
+        .map(
+            |(player_id, player_selection)| match player_selection.status {
+                PlayerSelectionStatus::Computer => Some(Player {
+                    player_id: (player_id + 1) as u8,
+                    human: false,
+                    blocks: Block::default_block_set(),
+                }),
+                PlayerSelectionStatus::Human => Some(Player {
+                    player_id: (player_id + 1) as u8,
+                    human: true,
+                    blocks: Block::default_block_set(),
+                }),
                 PlayerSelectionStatus::NotSelected => None,
-            }
-    ).flatten().collect();
+            },
+        )
+        .flatten()
+        .collect();
     let players_id: Vec<u8> = players.iter().map(|p| p.player_id).collect();
 
     let mut board = Board::new(20, 20);
@@ -456,14 +508,21 @@ fn main() -> Result<()> {
                         None
                     }
                 } else {
-                    GreedyStrategy::place(&board, player.player_id, players.as_slice(), turn_counter == 0)
+                    GreedyStrategy::place(
+                        &board,
+                        player.player_id,
+                        players.as_slice(),
+                        turn_counter == 0,
+                    )
                 };
 
                 let player: &mut Player = players.get_mut(position).unwrap();
                 if let Some(block_placement) = block_placement {
                     // remove block from player blocks
-                    let block_index_to_remove =
-                        player.blocks.iter().position(|b| *b == block_placement.block);
+                    let block_index_to_remove = player
+                        .blocks
+                        .iter()
+                        .position(|b| *b == block_placement.block);
                     if let Some(index) = block_index_to_remove {
                         player.blocks.remove(index);
                     }
