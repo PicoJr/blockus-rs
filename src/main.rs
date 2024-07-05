@@ -4,17 +4,16 @@ use std::thread;
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
-use ratatui::layout::Constraint::{Length, Min};
+use ratatui::layout::Constraint::{Fill, Length, Min};
 use ratatui::layout::{Layout, Rect};
 use ratatui::style::Color;
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Borders, List, ListItem, ListState, StatefulWidget, Widget};
+use ratatui::widgets::{Borders, HighlightSpacing, List, ListItem, ListState, Paragraph, StatefulWidget, Widget};
 use ratatui::{backend::CrosstermBackend, crossterm::{
     event::{self, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 }, symbols, Terminal};
-use ratatui::style::palette::tailwind::SLATE;
 
 use strategy::Player;
 
@@ -25,10 +24,6 @@ use crate::strategy::{BlockPlacement, GreedyStrategy, Strategy};
 mod block;
 mod board;
 mod strategy;
-
-const COMPUTER_COLOR_BG: Color = SLATE.c500;
-const HUMAN_COLOR_BG: Color = SLATE.c100;
-const NOT_SELECTED_COLOR_BG: Color = SLATE.c800;
 
 #[derive(Debug, Default)]
 struct BoardWidget {
@@ -153,15 +148,38 @@ enum PlayerSelectionStatus {
 #[derive(Default, Debug)]
 struct PlayerSelectionItem {
     status: PlayerSelectionStatus,
-    info: String,
+    player_id: u8,
 }
 
 impl From<&PlayerSelectionItem> for ListItem<'_> {
     fn from(value: &PlayerSelectionItem) -> Self {
+        let color = match value.player_id {
+            1 => match value.status {
+                    PlayerSelectionStatus::Computer => ratatui::style::palette::tailwind::RED.c300,
+                    PlayerSelectionStatus::Human => ratatui::style::palette::tailwind::RED.c500,
+                    PlayerSelectionStatus::NotSelected => ratatui::style::palette::tailwind::RED.c700,
+                },
+            2 => match value.status {
+                PlayerSelectionStatus::Computer => ratatui::style::palette::tailwind::GREEN.c300,
+                PlayerSelectionStatus::Human => ratatui::style::palette::tailwind::GREEN.c500,
+                PlayerSelectionStatus::NotSelected => ratatui::style::palette::tailwind::GREEN.c700,
+            },
+            3 => match value.status {
+                PlayerSelectionStatus::Computer => ratatui::style::palette::tailwind::BLUE.c300,
+                PlayerSelectionStatus::Human => ratatui::style::palette::tailwind::BLUE.c500,
+                PlayerSelectionStatus::NotSelected => ratatui::style::palette::tailwind::BLUE.c700,
+            },
+            _ => match value.status {
+                PlayerSelectionStatus::Computer => ratatui::style::palette::tailwind::YELLOW.c300,
+                PlayerSelectionStatus::Human => ratatui::style::palette::tailwind::YELLOW.c500,
+                PlayerSelectionStatus::NotSelected => ratatui::style::palette::tailwind::YELLOW.c700,
+            },
+        };
+
         let line = match value.status {
-            PlayerSelectionStatus::Computer => Line::styled(format!(" Computer     {}", value.info), COMPUTER_COLOR_BG),
-            PlayerSelectionStatus::Human => Line::styled(format!(" Human        {}", value.info), HUMAN_COLOR_BG),
-            PlayerSelectionStatus::NotSelected => Line::styled(format!(" Not selected {}", value.info), NOT_SELECTED_COLOR_BG),
+            PlayerSelectionStatus::Computer => Line::styled(format!(" Computer     Player {}", value.player_id), color),
+            PlayerSelectionStatus::Human => Line::styled(format!(" Human        Player {}", value.player_id), color),
+            PlayerSelectionStatus::NotSelected => Line::styled(format!(" Not selected Player {}", value.player_id), color),
         };
         ListItem::new(line)
     }
@@ -176,10 +194,10 @@ struct PlayerSelectionList {
 impl Default for PlayerSelectionList {
     fn default() -> Self {
         let items = vec![
-            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, info: "Player 1".to_string() },
-            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, info: "Player 2".to_string() },
-            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, info: "Player 3".to_string() },
-            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, info: "Player 4".to_string() },
+            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, player_id: 1},
+            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, player_id: 2},
+            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, player_id: 3},
+            PlayerSelectionItem { status: PlayerSelectionStatus::Computer, player_id: 4},
         ];
         PlayerSelectionList {
             items,
@@ -208,15 +226,27 @@ impl Widget for &mut App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         match self.game_state {
             GameState::MainMenu => {
+                let [header, menu, footer] = Layout::vertical([
+                    Length(2),
+                    Fill(1),
+                    Length(1),
+                ]).areas(area);
+
                 let block = ratatui::widgets::Block::new()
                     .title(Line::raw("Player Selection").centered())
-                    .borders(Borders::TOP)
-                    .border_set(symbols::border::EMPTY);
+                    .borders(Borders::all())
+                    .border_set(symbols::border::ROUNDED);
 
                 let items: Vec<ListItem> = self.player_selection_list.items.iter().map(|item| ListItem::from(item)).collect();
-                let list = List::new(items).block(block).highlight_symbol(">");
+                let list = List::new(items).block(block).highlight_symbol(">").highlight_spacing(HighlightSpacing::Always);
 
-                StatefulWidget::render(list, area, buf, &mut self.player_selection_list.state)
+                Paragraph::new("Blockus-rs")
+                    .centered()
+                    .render(header, buf);
+                StatefulWidget::render(list, menu, buf, &mut self.player_selection_list.state);
+                Paragraph::new("Use ↓↑ to move, ←→ to change Computer<->Human<->Not selected, enter to start game")
+                    .centered()
+                    .render(footer, buf);
             }
             GameState::Game => {
                 let [top, bottom] = Layout::vertical([Length(20), Min(0)]).areas(area);
@@ -276,7 +306,7 @@ fn main() -> Result<()> {
                         }
                     }
                 }
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
+                if key.kind == KeyEventKind::Press && key.code == KeyCode::Enter {
                     break;
                 }
             }
