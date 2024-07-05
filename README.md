@@ -12,3 +12,7 @@ Recorded by [asciinema](https://github.com/asciinema/asciinema) and converted to
 asciinema rec --overwrite blockus-rs-demo.cast --command "./target/release/blockus-rs"
 agg --speed 0.5 --idle-time-limit 1 --rows 30 blockus-rs-demo.cast blockus-rs-demo.gif
 ```
+
+## License
+
+Dual-licensed under MIT or the Apache License V2.0.
